@@ -1,0 +1,132 @@
+
+system flow : 
+✅ Video uploaded
+1️⃣ Decode the Original
+✅ Transcoded into multiple resolutions
+3️⃣ Transcode into Multiple Codecs
+5️⃣ Generate Thumbnails
+✅ HLS segments + playlist uploaded to S3
+✅ add cdn
+
+
+
+1.does s3 have a webhooks? 
+2.can we directly upload the vidoeo to the s3 from client and not send it to the your backend server?and when the upload is finish it will trigger webhooks and after that a vidoe process will be trigger tht pull the video in the process system aftr the processing it will upload the process video again in the s3 ? 
+3.after we upload teh video in the s3 can we dowload it in our system from s3? if yes how ? 
+4.if you upload video directly to the s3 from the frotnnd , can you store the link of the video to the datbase before the video uploading is finish?
+5.you want to store the process video link in the databse right. 
+
+
+
+
+server api for metadata sending
+
+webhooks api endpoint in the server that pulls 
+
+
+
+
+
+backend server:
+    creates the s3 link for uploading the video  from the frontend 
+    stores the metadata of the video like title, descriptions, video link , video uploading status( uplaoding , finish ) ,etc.
+
+
+
+s3 webhooks:
+    vidoe processing system:
+        download video from the s3
+        video processing triggers and the procesing system picks the video from the location and pass it into the processing system
+
+
+
+
+
+
+
+
+
+
+S3 Event Notifications
+You can send these events to:
+AWS Lambda (run code directly)
+Amazon SQS (queue)
+Amazon SNS (send messages or notify external system)
+➡️ This behaves like a webhook trigger.\
+
+
+
+Your backend generates a pre-signed URL using AWS SDK:
+Your frontend uploads directly to that URL (no backend file transfer):
+
+
+
+
+
+
+
+frontend :
+    send video info 
+        get s3 link and automcatically uplaod the vidoe from the frontend
+
+backend :
+    recives the video info and generate the link and send the link in the response , save the metadata in the datbase
+
+
+once the upload is finish 
+webhook is triggers that runs the video proccesing pipeline (downlaod the vidoe from the s3 and process it.)
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
