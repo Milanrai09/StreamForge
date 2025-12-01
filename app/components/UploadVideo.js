@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState } from "react";
 
@@ -24,25 +24,22 @@ function UploadVideo() {
         fileType: file.type,
         title,
         description,
-        tags: tags.split(","),
-      }),
+        tags: tags.split(",")
+      })
     });
-    
 
     const data = await res.json();
-    const { uploadURL, key, videoId } = data;
-    console.log("hello world url ")
-    console.log(uploadURL);
+    const { uploadURL, publicUrl, videoId } = data;
 
-    // 2️⃣ Upload video directly to S3
+    // Upload to S3
     const upload = await fetch(uploadURL, {
       method: "PUT",
       headers: { "Content-Type": file.type },
-      body: file,
+      body: file
     });
+
     if (upload.ok) {
-      const s3PublicUrl = `https://${process.env.NEXT_PUBLIC_S3_BUCKET}.s3.${process.env.NEXT_PUBLIC_AWS_REGION}.amazonaws.com/${key}`;
-      setUploadedUrl(s3PublicUrl);
+      setUploadedUrl(publicUrl); // <-- Use backend URL
       alert(`✅ Video uploaded successfully! Video ID: ${videoId}`);
     } else {
       alert("❌ Upload failed.");
@@ -62,12 +59,14 @@ function UploadVideo() {
         onChange={(e) => setTitle(e.target.value)}
         className="border p-2 mb-3 w-80"
       />
+
       <textarea
         placeholder="Description"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         className="border p-2 mb-3 w-80"
       />
+
       <input
         type="text"
         placeholder="Tags (comma separated)"
@@ -75,6 +74,7 @@ function UploadVideo() {
         onChange={(e) => setTags(e.target.value)}
         className="border p-2 mb-3 w-80"
       />
+
       <input
         type="file"
         accept="video/*"
