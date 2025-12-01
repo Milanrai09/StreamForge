@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import HLSPlayer from "./HslPlayer";
 
 function UploadVideo() {
   const [file, setFile] = useState(null);
@@ -103,6 +104,8 @@ function UploadVideo() {
           </a>
         </div>
       )}
+
+      <HLSPlayer/>
     </div>
   );
 }
