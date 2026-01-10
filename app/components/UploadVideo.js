@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import HLSPlayer from "./HslPlayer";
-import { useUser } from "@auth0/nextjs-auth0/client";
-import { useRouter } from "next/navigation";
+// import { useUser } from "@auth0/nextjs-auth0/client";
+// import { useRouter } from "next/navigation";
 
 function UploadVideo() {
   const [file, setFile] = useState(null);
@@ -15,17 +15,17 @@ function UploadVideo() {
   const [videoId, setVideoId] = useState("");
   const [error, setError] = useState("");
 
-  const { user, isLoading } = useUser();
-  const router = useRouter();
+  // const { user, isLoading } = useUser();
+  // const router = useRouter();
 
-  useEffect(() => {
-    if (isLoading) return;
+  // useEffect(() => {
+    // if (isLoading) return;
 
     // If no user → redirect
-    if (!user) {
-      router.replace("/auth/login");
-      return;
-    }
+    // if (!user) {
+    //   router.replace("/auth/login");
+    //   return;
+    // }
 
     // If user logged in → sync user to database
     // fetch("/api/auth/sync-user", {
@@ -38,7 +38,7 @@ function UploadVideo() {
     //     picture: user.picture
     //   })
     // }).catch(err => console.error("Failed to sync user:", err));
-  }, [user, isLoading, router]);
+  // }, [user, isLoading, router]);
 
   const handleFileChange = (e) => setFile(e.target.files[0]);
 
