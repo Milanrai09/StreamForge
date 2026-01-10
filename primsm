@@ -1,0 +1,15 @@
+npx prisma db push 
+npx prisma migrate dev --name init  
+
+
+
+auth0 
+create user model from the auth0 
+
+you upload the video 
+video input Metadata
+
+video processed 
+video processed meta data and link 
+
+video 

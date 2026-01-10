@@ -1,0 +1,142 @@
+// ==================== GENERATOR ====================
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== USER MODEL ====================
+model User {
+  id        String   @id                // Auth0 user.sub (auth0|123abc)
+  email     String   @unique
+  name      String?
+  picture   String?
+
+  videos    Video[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==================== VIDEO MODEL ====================
+model Video {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  originalUrl       String
+  originalFileName  String
+  originalFileSize  Int
+  originalDuration  Float
+  
+  status            ProcessingStatus @default(PENDING)
+  ecsTaskArn        String?
+  errorMessage      String?
+  
+  masterPlaylistUrl String?
+
+  renditions        Rendition[]
+  thumbnails        Thumbnail[]
+
+  // ADD THIS ↓↓↓
+  logs              ProcessingLog[]
+
+  s3Bucket          String
+  s3ProcessedPath   String
+  totalS3Files      Int       @default(0)
+  
+  description       String?
+  tags              String[]  @default([])
+  thumbnail         String?
+  
+  uploadedAt        DateTime  @default(now())
+  processedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([slug])
+}
+
+
+// ==================== RENDITION MODEL ====================
+model Rendition {
+  id        String   @id @default(cuid())
+
+  // Video relationship
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  // Rendition data
+  resolution      String     // "1080p", "720p", etc.
+  bitrate         Int        // in kbps
+  playlistUrl     String     // m3u8 file URL
+  segmentCount    Int?
+  
+  createdAt       DateTime @default(now())
+
+  @@index([videoId])
+}
+
+// ==================== THUMBNAIL MODEL ====================
+model Thumbnail {
+  id        String   @id @default(cuid())
+
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  url       String
+  s3Key     String
+  timestamp Float
+  width     Int      @default(320)
+  height    Int      @default(180)
+  
+  type      ThumbnailType @default(PREVIEW)
+
+  createdAt DateTime @default(now())
+
+  @@index([videoId])
+}
+
+// ==================== PROCESSING LOG MODEL ====================
+model ProcessingLog {
+  id        String   @id @default(cuid())
+
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  stage       String
+  status      String
+  message     String
+  duration    Float?
+
+  errorCode    String?
+  errorDetails String?
+
+  createdAt    DateTime @default(now())
+
+  @@index([videoId])
+  @@index([createdAt])
+}
+
+// ==================== ENUMS ====================
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  ARCHIVED
+}
+
+enum ThumbnailType {
+  PREVIEW
+  COVER
+  TIMELINE
+}

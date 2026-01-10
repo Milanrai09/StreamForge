@@ -83,6 +83,194 @@ webhook is triggers that runs the video proccesing pipeline (downlaod the vidoe 
 
 
 
+// ============= USER MODEL =============
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  videos Video[]
+}
+
+// ============= VIDEO MODEL =============
+model Video {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  
+  // User relationship
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Original video info
+  originalUrl       String
+  originalFileName  String
+  originalFileSize  Int       // in bytes
+  originalDuration  Float     // in seconds
+  
+  // Processing status
+  status            ProcessingStatus @default(PENDING) // PENDING, PROCESSING, COMPLETED, FAILED
+  ecsTaskArn        String?   // ECS task ARN for tracking
+  errorMessage      String?   // Error details if processing failed
+  
+  // Master playlist (HLS)
+  masterPlaylistUrl String?
+  
+  // Renditions/Resolutions
+  renditions Rendition[]
+  
+  // Thumbnails
+  thumbnails Thumbnail[]
+  
+  // S3 Storage info
+  s3Bucket          String
+  s3ProcessedPath   String    // e.g., "processed/video_abc123"
+  totalS3Files      Int       @default(0)
+  
+  // Metadata
+  description       String?
+  tags              String[]  @default([])
+  thumbnail         String?   // Cover image URL
+  
+  // Timestamps
+  uploadedAt        DateTime  @default(now())
+  processedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([slug])
+}
+
+// ============= RENDITION MODEL (Quality Levels) =============
+model Rendition {
+  id        String   @id @default(cuid())
+  
+  // Video relationship
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  
+  // Quality info
+  name              String       // "1080p", "720p", "480p", "360p"
+  width             Int
+  height            Int
+  bitrate           String       // "5000k", "3000k", etc.
+  bandwidth         Int          // in bits/sec
+  
+  // Playlist file
+  playlistUrl       String       // S3 URL to individual .m3u8
+  playlistName      String       // e.g., "1080p_h264.m3u8"
+  
+  // Segments
+  segmentCount      Int          @default(0)
+  segmentSize       Int?         // average segment size in bytes
+  
+  // Codec info
+  codec             String       // "h264", "vp9", etc.
+  
+  // Storage
+  s3Key             String       // Full S3 path
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([videoId])
+  @@unique([videoId, name])
+}
+
+// ============= THUMBNAIL MODEL =============
+model Thumbnail {
+  id        String   @id @default(cuid())
+  
+  // Video relationship
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  
+  // Thumbnail info
+  url               String       // S3 URL
+  s3Key             String       // Full S3 path
+  timestamp         Float        // Position in video (seconds)
+  width             Int          @default(320)
+  height            Int          @default(180)
+  
+  // Purpose
+  type              ThumbnailType @default(PREVIEW) // PREVIEW, COVER, TIMELINE
+  
+  createdAt         DateTime     @default(now())
+
+  @@index([videoId])
+}
+
+// ============= PROCESSING LOG MODEL =============
+model ProcessingLog {
+  id        String   @id @default(cuid())
+  
+  videoId   String
+  
+  // Log details
+  stage             String       // "download", "transcode", "upload", "database"
+  status            String       // "started", "completed", "failed"
+  message           String
+  duration          Float?       // in seconds
+  
+  // Error tracking
+  errorCode         String?
+  errorDetails      String?
+  
+  createdAt         DateTime     @default(now())
+
+  @@index([videoId])
+  @@index([createdAt])
+}
+
+// ============= ENUMS =============
+enum ProcessingStatus {
+  PENDING    // Waiting to be processed
+  PROCESSING // Currently being processed
+  COMPLETED  // Successfully processed
+  FAILED     // Processing failed
+  ARCHIVED   // Archived/deleted
+}
+
+enum ThumbnailType {
+  PREVIEW  // Regular preview thumbnails
+  COVER    // Cover/poster image
+  TIMELINE // Timeline preview strip
+}
+
+
+
+
+
+
+
+email
+: 
+"memilanrai19@gmail.com"
+email_verified
+: 
+true
+family_name
+: 
+"Rai"
+given_name
+: 
+"Milan"
+name
+: 
+"Milan Rai"
+nickname
+: 
+"memilanrai19"
+picture
+: 
+"https://lh3.googleusercontent.com/a/ACg8ocJZIh2oa8R28XYdrheD3nkz4AFOtY-zpC3BUnvcjqNVErrCxw=s96-c"
+sub
+: 
+"google-oauth2|118394636443665611850"
 
 
 
@@ -113,6 +301,28 @@ webhook is triggers that runs the video proccesing pipeline (downlaod the vidoe 
 
 
 
+
+
+
+streamforge is a video uploading and trasncoding services where  you uplod vidoe and play the uploaded vide in hls
+
+get the s3 upload link , upload in the s3 link , trigges a webhook of transcoding system and it downlods the video from the s3 and transcode it and then again it uplaodes it to the s3
+
+store the meta data of the video during the vidoe uplaod from the client 
+
+
+video-service:
+get the s3 url and upload it to the url from the client 
+
+
+
+s3: 
+gets the video 
+triggers the webhook in which the uplaoded vidoe url is send to the video-processing-pipeline 
+
+
+video-processing-pipeline:
+downlaods the video from the s3 and process it and uplaods it to the s3 again 
 
 
 
