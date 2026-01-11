@@ -1,7 +1,7 @@
 "use client"
 import React from 'react';
 import UploadVideo from "./components/UploadVideo";
-import WatchVideoPage from './components/HslPlayer';
+
 
 
 export default function Home() {
