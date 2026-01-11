@@ -21,7 +21,7 @@ export async function POST(request) {
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("Body:", JSON.stringify(body, null, 2));
 
-    // ⭐ 1. SNS Subscription Confirmation
+    // ⭐ 1. Check if it's SNS Subscription Confirmation
     if (body.Type === "SubscriptionConfirmation") {
       console.log("📩 SNS Subscription Confirmation");
       const subscribeURL = body.SubscribeURL;
