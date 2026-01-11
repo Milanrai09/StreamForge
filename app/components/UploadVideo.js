@@ -2,9 +2,6 @@
 
 import { useState } from "react";
 
-// import { useUser } from "@auth0/nextjs-auth0/client";
-// import { useRouter } from "next/navigation";
-
 function UploadVideo() {
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState("");
@@ -15,36 +12,14 @@ function UploadVideo() {
   const [videoId, setVideoId] = useState("");
   const [error, setError] = useState("");
 
-  // const { user, isLoading } = useUser();
-  // const router = useRouter();
-
-  // useEffect(() => {
-    // if (isLoading) return;
-
-    // If no user → redirect
-    // if (!user) {
-    //   router.replace("/auth/login");
-    //   return;
-    // }
-
-    // If user logged in → sync user to database
-    // fetch("/api/auth/sync-user", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({
-    //     authId: user.sub,
-    //     email: user.email,
-    //     name: user.name,
-    //     picture: user.picture
-    //   })
-    // }).catch(err => console.error("Failed to sync user:", err));
-  // }, [user, isLoading, router]);
-
   const handleFileChange = (e) => setFile(e.target.files[0]);
 
   const handleUpload = async () => {
-    if (!file || !title) return alert("Please select a file and add a title.");
-    
+    if (!file || !title) {
+      alert("Please select a file and add a title.");
+      return;
+    }
+
     setError("");
     setUploading(true);
 
@@ -68,27 +43,30 @@ function UploadVideo() {
       const data = await res.json();
       const { uploadURL, publicUrl, videoId } = data;
 
-      // Upload to S3
+      // Upload directly to S3
       const upload = await fetch(uploadURL, {
         method: "PUT",
         headers: { "Content-Type": file.type },
         body: file
       });
 
-      if (upload.ok) {
-        setUploadedUrl(publicUrl);
-        setVideoId(videoId);
-        alert(`✅ Video uploaded successfully! Video ID: ${videoId}`);
-        // Reset form
-        setFile(null);
-        setTitle("");
-        setDescription("");
-        setTags("");
-      } else {
+      if (!upload.ok) {
         throw new Error("Upload to S3 failed");
       }
+
+      setUploadedUrl(publicUrl);
+      setVideoId(videoId);
+
+      alert(`✅ Video uploaded successfully!\nVideo ID: ${videoId}`);
+
+      // Reset form
+      setFile(null);
+      setTitle("");
+      setDescription("");
+      setTags("");
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "An error occurred";
+      const errorMsg =
+        err instanceof Error ? err.message : "An error occurred";
       setError(errorMsg);
       alert(`❌ ${errorMsg}`);
     } finally {
@@ -149,12 +127,10 @@ function UploadVideo() {
             rel="noopener noreferrer"
             className="text-blue-500 underline"
           >
-            View on S3
+            View video on S3
           </a>
         </div>
       )}
-
-      {videoId && <HLSPlayer videoId={videoId} />}
 
       <a href="/auth/logout" className="button logout mt-6">
         Log Out
