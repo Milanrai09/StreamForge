@@ -1,0 +1,56 @@
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model User {
+  id        String   @id            // auth0 user sub
+  name      String?
+  createdAt DateTime @default(now())
+
+  videos    Video[]
+}
+
+model Video {
+  id        String   @id @default(cuid())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  title       String
+  description String?
+
+  // 🔁 processing state
+  status      String   @default("processing")
+
+  // namespace used for upload/processing grouping
+  namespace   String?   @unique
+  videoLink   String?
+
+  // HLS outputs
+  hlsMaster   String?
+  hls1080p    String?
+  hls720p     String?
+  hls480p     String?
+  hls360p     String?
+
+  // metadata
+  thumbnails  Json?
+  allFiles    Json?
+  totalFiles  Int?
+  processingCompletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+
+
