@@ -1,0 +1,13 @@
+
+const SFLogo = () => (
+  <svg viewBox="0 0 36 36" fill="none" className="w-8 h-8 shrink-0" aria-hidden>
+    <rect width="36" height="36" rx="9" fill="url(#sfg)" />
+    <path d="M10 13h10l-4 5h8" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M10 23h6" stroke="#fff" strokeOpacity=".5" strokeWidth="2" strokeLinecap="round" />
+    <defs>
+      <linearGradient id="sfg" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#6366f1" /><stop offset="1" stopColor="#8b5cf6" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
