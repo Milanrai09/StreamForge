@@ -22,6 +22,11 @@ export async function proxy(request) {
     return authResponse;
   }
 
+  // ✅ BYPASS SNS WEBHOOK (IMPORTANT)
+  if (pathname === "/api/trigger-processing") {
+    return NextResponse.next();
+  }
+
   const session = await auth0.getSession(request);
 
   // APIs should return 401 JSON instead of browser redirects.
@@ -45,6 +50,8 @@ export async function proxy(request) {
 
   return authResponse;
 }
+
+
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)"],
