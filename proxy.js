@@ -26,6 +26,9 @@ export async function proxy(request) {
   if (pathname === "/api/trigger-processing") {
     return NextResponse.next();
   }
+  if(pathname === "/api/processed-callback"){
+    return NextResponse.next();
+  }
 
   const session = await auth0.getSession(request);
 
