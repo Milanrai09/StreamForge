@@ -1,12 +1,19 @@
-import AWS from "aws-sdk";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { prisma } from "@/lib/prisma";
 
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+// ✅ AWS SDK v3 client
+const s3 = new S3Client({
   region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
 });
 
+// ─────────────────────────────────────────────
+// helpers
+// ─────────────────────────────────────────────
 function slugify(value) {
   return String(value || "")
     .toLowerCase()
@@ -20,9 +27,13 @@ function sanitizeFileName(fileName) {
   return String(fileName || "upload.bin").replace(/[^\w.\-]/g, "_");
 }
 
+// ─────────────────────────────────────────────
+// POST: Generate signed upload URL
+// ─────────────────────────────────────────────
 export async function POST(req) {
   try {
     const body = await req.json();
+
     const {
       fileName,
       fileType,
@@ -39,37 +50,50 @@ export async function POST(req) {
       );
     }
 
+    // ✅ namespace
     const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const namespace = `${slugify(title)}-${randomNum}-${slugify(username || "user")}`;
+    const namespace = `${slugify(title)}-${randomNum}-${slugify(
+      username || "user"
+    )}`;
+
     const cleanFileName = sanitizeFileName(fileName);
+
     const rawPrefix = process.env.S3_RAW_PREFIX || "videos/raw";
     const namespacePrefix = `${rawPrefix}/${namespace}/`;
+
     const key = `${namespacePrefix}${cleanFileName}`;
 
-    // Create folder-like namespace object before issuing upload URL
-    await s3
-      .putObject({
+    // ✅ create folder-like prefix (optional)
+    await s3.send(
+      new PutObjectCommand({
         Bucket: process.env.S3_BUCKET,
         Key: namespacePrefix,
         Body: "",
       })
-      .promise();
+    );
 
-    const uploadURL = await s3.getSignedUrlPromise("putObject", {
+    // ✅ generate signed URL
+    const command = new PutObjectCommand({
       Bucket: process.env.S3_BUCKET,
       Key: key,
       ContentType: fileType,
-      Expires: 60 * 5,
     });
 
+    const uploadURL = await getSignedUrl(s3, command, {
+      expiresIn: 60 * 5, // 5 min
+    });
+
+    // ✅ permanent public URL
     const publicUrl = `https://${process.env.S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 
+    // ✅ ensure user exists
     await prisma.user.upsert({
       where: { id: userId },
       update: {},
       create: { id: userId, name: username || null },
     });
 
+    // ⚠️ store PUBLIC URL, not signed URL
     const videoRecord = await prisma.video.create({
       data: {
         userId,
@@ -77,7 +101,7 @@ export async function POST(req) {
         description: description || "",
         status: "pending_upload",
         namespace,
-        videoLink: uploadURL,
+        videoLink: publicUrl,
       },
     });
 
@@ -96,6 +120,7 @@ export async function POST(req) {
     );
   } catch (error) {
     console.error("❌ Error generating URL:", error);
+
     return Response.json(
       {
         error: "Failed to generate signed URL",
@@ -106,6 +131,9 @@ export async function POST(req) {
   }
 }
 
+// ─────────────────────────────────────────────
+// GET: health check
+// ─────────────────────────────────────────────
 export async function GET() {
   return Response.json({
     ok: true,
