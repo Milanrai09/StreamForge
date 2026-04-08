@@ -213,7 +213,8 @@ function StreamLink({ label, url, quality }) {
 }
 
 export default async function VideoDetailPage({ params }) {
-  const video = await getVideoForCurrentUser(params.id);
+  const { id } = await params;
+  const video = await getVideoForCurrentUser(id);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100">
@@ -222,7 +223,7 @@ export default async function VideoDetailPage({ params }) {
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <Link
-            href="/videos"
+            href="/video"
             className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
@@ -406,3 +407,5 @@ export default async function VideoDetailPage({ params }) {
     </div>
   );
 }
+
+

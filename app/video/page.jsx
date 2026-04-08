@@ -81,7 +81,8 @@ function VideoCard({ video }) {
   };
 
   const thumbnail = getThumbnail();
-  const isProcessing = video.status !== "completed";
+  const normalizedStatus = String(video.status || "").toLowerCase();
+  const isProcessing = !["completed", "processed"].includes(normalizedStatus);
 
   return (
     <Link href={`/video/${video.id}`}>
@@ -234,4 +235,3 @@ export default async function VideosPage() {
     </div>
   );
 }
-
