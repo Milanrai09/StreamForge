@@ -12,6 +12,8 @@
   "dependencies": {
     "@auth0/nextjs-auth0": "^4.14.1",
     "@aws-sdk/client-ecs": "^3.991.0",
+    "@aws-sdk/client-s3": "^3.1026.0",
+    "@aws-sdk/s3-request-presigner": "^3.1026.0",
     "@openai/codex": "^0.101.0",
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",

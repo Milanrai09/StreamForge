@@ -1,23 +1,31 @@
 import { ECSClient, RunTaskCommand } from "@aws-sdk/client-ecs";
-import AWS from "aws-sdk";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { prisma } from "@/lib/prisma";
 
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+// ✅ S3 v3
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
+// ✅ ECS v3 (already correct)
+const ecs = new ECSClient({
   region: process.env.AWS_REGION,
 });
 
-const ecs = new ECSClient({ region: process.env.AWS_REGION });
-
+// ─────────────────────────────────────────────
+// MAIN HANDLER
+// ─────────────────────────────────────────────
 export async function POST(req) {
   try {
     const body = await req.json();
     console.log("📩 Incoming Body:", body);
 
-    // ─────────────────────────────────────────────
-    // 1. ✅ Direct S3 Event (NO SNS)
-    // ─────────────────────────────────────────────
+    // 1. Direct S3 Event
     if (body.Records && body.Records[0]?.eventSource === "aws:s3") {
       console.log("📦 Direct S3 Event Detected");
 
@@ -28,14 +36,11 @@ export async function POST(req) {
       return await handleS3Event(bucket, key);
     }
 
-    // ─────────────────────────────────────────────
-    // 2. ✅ SNS Subscription Confirmation
-    // ─────────────────────────────────────────────
+    // 2. SNS Subscription Confirmation
     if (body.Type === "SubscriptionConfirmation") {
       const confirmUrl = body.SubscribeURL;
 
       console.log("🔗 Confirming SNS subscription:", confirmUrl);
-
       await fetch(confirmUrl);
 
       console.log("✅ SNS Subscription Confirmed");
@@ -43,9 +48,7 @@ export async function POST(req) {
       return Response.json({ message: "Subscription confirmed" });
     }
 
-    // ─────────────────────────────────────────────
-    // 3. ✅ SNS Notification (S3 wrapped)
-    // ─────────────────────────────────────────────
+    // 3. SNS Notification
     if (body.Type === "Notification") {
       let snsMessage;
 
@@ -69,9 +72,7 @@ export async function POST(req) {
       return await handleS3Event(bucket, key);
     }
 
-    // ─────────────────────────────────────────────
-    // 4. ✅ Ignore unknown types (IMPORTANT)
-    // ─────────────────────────────────────────────
+    // 4. Ignore unknown
     console.log("ℹ️ Ignored message type:", body.Type);
 
     return Response.json({ message: "Ignored" }, { status: 200 });
@@ -87,7 +88,7 @@ export async function POST(req) {
 }
 
 // ─────────────────────────────────────────────
-// 🔁 Shared handler for S3 events (core logic)
+// CORE S3 HANDLER
 // ─────────────────────────────────────────────
 async function handleS3Event(bucket, key) {
   try {
@@ -98,9 +99,7 @@ async function handleS3Event(bucket, key) {
     console.log("📁 Key:", key);
     console.log("🧠 Namespace:", namespace);
 
-    // ─────────────────────────────────────────────
-    // 🧠 Idempotency / Claim job
-    // ─────────────────────────────────────────────
+    // 🧠 Idempotency
     const claimed = namespace
       ? await prisma.video.updateMany({
           where: {
@@ -120,13 +119,14 @@ async function handleS3Event(bucket, key) {
       });
     }
 
-    // ─────────────────────────────────────────────
-    // 🔐 Generate signed URL
-    // ─────────────────────────────────────────────
-    const downloadUrl = await s3.getSignedUrlPromise("getObject", {
+    // 🔐 Generate signed DOWNLOAD URL (v3)
+    const command = new GetObjectCommand({
       Bucket: bucket,
       Key: key,
-      Expires: 60 * 60,
+    });
+
+    const downloadUrl = await getSignedUrl(s3, command, {
+      expiresIn: 60 * 60, // 1 hour
     });
 
     const rawPrefix = process.env.S3_RAW_PREFIX || "videos/raw";
@@ -139,10 +139,8 @@ async function handleS3Event(bucket, key) {
     console.log("📥 Download URL generated");
     console.log("📂 Output S3 path:", outputS3Path);
 
-    // ─────────────────────────────────────────────
-    // 🚀 Launch ECS Task
-    // ─────────────────────────────────────────────
-    const command = new RunTaskCommand({
+    // 🚀 ECS TASK
+    const ecsCommand = new RunTaskCommand({
       cluster:
         process.env.AWS_ECS_CLUSTER ||
         process.env.ECS_CLUSTER_NAME,
@@ -191,7 +189,7 @@ async function handleS3Event(bucket, key) {
     let response;
 
     try {
-      response = await ecs.send(command);
+      response = await ecs.send(ecsCommand);
     } catch (ecsError) {
       console.error("❌ ECS failed, reverting DB");
 
