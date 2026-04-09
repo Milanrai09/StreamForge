@@ -6,9 +6,7 @@ import {
   ArrowLeft,
   ExternalLink,
   Calendar,
-  Video,
   Globe,
-  PlayCircle,
   FileVideo,
   CheckCircle,
   Loader2,
@@ -16,6 +14,7 @@ import {
   Image as ImageIcon
 } from "lucide-react";
 import { CopyButton } from "./CopyButton";
+import { VideoPlayerClient } from "./VideoPlayerClient";
 
 async function getVideoForCurrentUser(videoId) {
   const session = await auth0.getSession();
@@ -35,69 +34,6 @@ async function getVideoForCurrentUser(videoId) {
   }
 
   return video;
-}
-
-function VideoPlayer({ video }) {
-  // Determine which video source to use (prefer HLS master playlist)
-  const getVideoSource = () => {
-    if (video.hlsMaster) return video.hlsMaster;
-    if (video.hls1080p) return video.hls1080p;
-    if (video.hls720p) return video.hls720p;
-    if (video.hls480p) return video.hls480p;
-    if (video.hls360p) return video.hls360p;
-    return null;
-  };
-
-  const videoSource = getVideoSource();
-  const isHLS = videoSource?.includes('.m3u8');
-
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-red-50 rounded-lg">
-          <PlayCircle className="w-5 h-5 text-red-600" />
-        </div>
-        <h2 className="text-lg font-semibold text-gray-900">Video Player</h2>
-      </div>
-
-      {videoSource ? (
-        <div className="aspect-video rounded-lg overflow-hidden bg-black">
-          {isHLS ? (
-            <video
-              controls
-              className="w-full h-full"
-              controlsList="nodownload"
-              preload="metadata"
-            >
-              <source src={videoSource} type="application/x-mpegURL" />
-              {/* Fallback to other qualities */}
-              {video.hls720p && <source src={video.hls720p} type="application/x-mpegURL" />}
-              {video.hls480p && <source src={video.hls480p} type="application/x-mpegURL" />}
-              Your browser does not support HLS video playback.
-            </video>
-          ) : (
-            <video
-              controls
-              className="w-full h-full"
-              controlsList="nodownload"
-              preload="metadata"
-            >
-              <source src={videoSource} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          )}
-        </div>
-      ) : (
-        <div className="aspect-video rounded-lg bg-linear-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 text-gray-400 animate-spin mx-auto mb-3" />
-            <p className="text-gray-600 font-medium">Video is still processing</p>
-            <p className="text-sm text-gray-500 mt-1">Check back in a few minutes</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 function StatusBadge({ status }) {
@@ -252,7 +188,7 @@ export default async function VideoDetailPage({ params }) {
         </div>
 
         {/* Video Player */}
-        <VideoPlayer video={video} />
+        <VideoPlayerClient video={video} />
 
         {/* Thumbnails */}
         <ThumbnailGallery video={video} />
@@ -407,5 +343,3 @@ export default async function VideoDetailPage({ params }) {
     </div>
   );
 }
-
-
