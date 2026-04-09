@@ -92,6 +92,17 @@ export async function POST(req) {
 // ─────────────────────────────────────────────
 async function handleS3Event(bucket, key) {
   try {
+    // ✅ Ignore folder-creation events (empty objects ending with /) and non-video files.
+    // The upload API creates an empty folder object before the real upload, which fires
+    // its own S3 event. Without this guard, the container gets launched with the folder
+    // key (0 bytes) instead of the actual video file.
+    const videoExtensions = [".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"];
+    const hasVideoExtension = videoExtensions.some((ext) => key.toLowerCase().endsWith(ext));
+    if (key.endsWith("/") || !hasVideoExtension) {
+      console.log("⏭️ Skipping non-video key:", key);
+      return Response.json({ message: "Skipping non-video key" });
+    }
+
     const keyDir = key.substring(0, key.lastIndexOf("/"));
     const namespace = keyDir.split("/").pop();
 
